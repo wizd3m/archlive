@@ -1,0 +1,141 @@
+	    _             _     ___           _        _ _ 
+	   / \   _ __ ___| |__ |_ _|_ __  ___| |_ __ _| | |
+	  / _ \ | '__/ __| '_ \ | || '_ \/ __| __/ _` | | |
+	 / ___ \| | | (__| | | || || | | \__ \ || (_| | | |
+	/_/   \_\_|  \___|_| |_|___|_| |_|___/\__\__,_|_|_|
+-------------------------------------------------------------------
+
+With this document you can install Arch Linux "The Arch Way". Just
+follow the steps below and have fun!
+
+-------------------------------------------------------------------
+
+Info: 
+
+	all keypresses are between two apostrophe's like 'Ctrl+Enter'
+	means press Ctrl and Enter.
+
+	> means an action in a config file using an editor like nano
+		or vim
+
+	>> means add the line to the file you edit
+
+-------------------------------------------------------------------
+
+For this text we are going to presume we install Arch to the first
+drive, e.g. /dev/sda. We are also presuming you are installing Arch
+using the en_US.UTF-8 locale with a 'us'-keyboard
+
+We are going to create the following partions (and yes we are going
+to keep it simple here too)
+
+	* /dev/sda1	- swap 		= 8G
+	* /dev/sda2	- boot (ext2)	= 2G
+	* /dev/sda3	- root (ext4)	= 500G
+
+My favorite way to partition is to use cfdisk, but this also works
+with fdisk.
+
+I will use the Europe/Amsterdam as a timezone, as that is where I live.
+
+-------------------------------------------------------------------
+
+First fire up tmux and do a vertical split into two planes. In one plane you open this
+text document and in the other you actually install Arch Linux.
+
+You can create 2 planes by pressing 'Ctrl+b "' and you can switch panes by pressing
+'Ctrl+b arrow key'
+
+-------------------------------------------------------------------
+
+Now let's install Arch Linux.
+
+1 let's check if we have a connection to the internet
+	# ping -c 3 archlinux.org
+
+2 now update the systemclock
+	# timedatectl set-ntp true
+
+3 partition the disk following the scheme above
+	# cfdisk /dev/sda
+
+4 create the file system
+	# mkswap /dev/sda1
+	# swapon /dev/sda1
+	# mkfs.ext2 /dev/sda2
+	# mkfs.ext4 /dev/sda3
+
+5 mount the partions
+	# mount /dev/sda3 /mnt
+	# mkdir /mnt/boot
+	# mount /dev/sda2 /mnt/boot
+
+6 get the nearest mirrors
+	# reflector --verbose --latest 5 --sort rate --save /etc/pacman.d/mirrorlist
+
+7 install the base packages
+	# pacstrap /mnt base base-devel
+
+8 genereate fstab
+	# genfstab -U /mnt >> /mnt/etc/fstab
+
+9 change root into the new system
+	# arch-chroot /mnt
+
+10 set the timezone
+	# ln -sf /usr/share/zoneinfo/Europe/Amsterdam /etc/localtime
+
+11 set the hardware clock
+	# hwclock --systohc
+
+12 create the correct locales
+	# nano /etc/locale.gen
+		> find en_US.UTF-8 and remove the #
+	# locale-gen
+
+13 set the LANG variable in locale.conf
+	# nano /etc/locale.conf
+		>> LANG=en_US.UTF-8
+
+13 set the keyboard layout (you can list them with localectl list-keymaps)
+	# nano /etc/vconsole.conf
+		>> KEYMAP=us-acentos
+
+14 create a hostname file
+	# echo "archlinux" > /etc/hostname
+
+15 add matching entries to the hosts file
+	# nano /etc/hosts
+		>> 127.0.0.1	localhost
+		>> ::1		localhost
+		>> 127.0.1.1	archlinux.localdomain	archlinux
+
+15 Network configuration
+	# pacman -S networkmanager
+	# systemctl enable NetworkManager
+
+16 create a new initramfs
+	# mkinitcpio -p linux
+
+17 create a password for root
+	# passwd
+
+18 install intel microcode
+	# pacamn -S intel-ucode
+
+19 install Grub as a bootloader and install it
+	# pacman -S grub
+	# grub-mkconfig -o /boot/grub/grub.cfg
+
+20 exit chroot, unmount and reboot
+	> type 'exit'
+	# umount -R /mnt
+	# reboot
+
+-------------------------------------------------------------------
+		 ____                   
+		|  _ \  ___  _ __   ___ 
+		| | | |/ _ \| '_ \ / _ \
+		| |_| | (_) | | | |  __/
+		|____/ \___/|_| |_|\___|
+                        
